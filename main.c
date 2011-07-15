@@ -55,6 +55,7 @@
 #include <media/davinci/vpfe_capture.h>
 #include <linux/media.h>
 #include <linux/v4l2-subdev.h>
+#include <linux/fb.h>
 #include "common.h"
 
 /* Device parameters */
@@ -661,7 +662,7 @@ int setup_display()
 	} else
 		printf("successfully set Display display\n");
 //TODO
-//	/* Set Standard for display ------ */
+	/* Set Standard for display ------ */
 //	printf("set STD on display\n");
 //	ret = ioctl(display_fd, VIDIOC_S_STD, &standard_id);
 //	if(ret < 0) {
@@ -923,6 +924,7 @@ int main(int argc, char *argv[])
 	while(frame_count < 200) {
 		frame_count++;
 
+		fprintf(stderr, "Start while... %i\n", frame_count);
 		CLEAR(cap_buf);
 		CLEAR(disp_qbuf);
 
@@ -949,6 +951,7 @@ int main(int argc, char *argv[])
 //	        if (0 == r)
 //	            continue;
 try_again:
+	//fprintf(stderr, "try...%i\n", frame_count);
 		ret = ioctl(ccdc_output_fd, VIDIOC_DQBUF, &cap_buf);
 		if (ret < 0) {
 			if (errno == EAGAIN) {
@@ -968,6 +971,7 @@ try_again:
 			exit(0);
 		}
 
+		printf("display DQBUF\n");
 		src = capture_buffers[cap_buf.index].start;
 		dst = display_buffers[disp_qbuf.index].start;
 
@@ -975,6 +979,16 @@ try_again:
 			memcpy(dst, src, display_pitch);
 			src += capture_pitch;
 			dst += display_pitch;
+		}
+
+		//write out test image
+		if(100== frame_count)
+		{
+			  FILE * pFile;
+
+			  pFile = fopen ( "/test.yuv" , "wb" );
+			fwrite(capture_buffers[cap_buf.index].start, capture_buffers[cap_buf.index].length, 1, pFile);
+			  fclose(pFile);
 		}
 
 		/* Q the buffer for capture, again */
